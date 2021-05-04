@@ -2,6 +2,7 @@
 #define SUPER_HAXAGON_MATRIX_HPP
 
 #include <cstdint>
+#include <cmath>
 
 namespace SuperHaxagon {
 

@@ -1,5 +1,7 @@
 #include "Core/Surface.hpp"
 
+#include <cmath>
+
 namespace SuperHaxagon {
 	void Surface::screenSwap() {
 		// By default do nothing since most platforms don't have two screens.
