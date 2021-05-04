@@ -21,9 +21,10 @@ namespace SuperHaxagon {
 		~Transition() override;
 
 		std::unique_ptr<State> update(float dilation) override;
-		void drawTop(float scale) override;
-		void drawBot(float scale) override;
 		void enter() override;
+		void drawTop(SurfaceGame& surface, SurfaceGame* shadows) override;
+		void drawTopUI(SurfaceUI&) override {}
+		void drawBotUI(SurfaceUI& surface) override;
 
 	private:
 		Game& _game;

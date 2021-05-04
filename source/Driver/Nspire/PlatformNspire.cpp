@@ -96,7 +96,7 @@ namespace SuperHaxagon {
 		return buttons;
 	}
 
-	Point PlatformNspire::getScreenDim() const {
+	Vec2f PlatformNspire::getScreenDim() const {
 		return {320, 240};
 	}
 
@@ -110,7 +110,7 @@ namespace SuperHaxagon {
 		gui_gc_blit_to_screen(_gc);
 	}
 
-	void PlatformNspire::drawPoly(const Color& color, const std::vector<Point>& points) {
+	void PlatformNspire::drawPoly(const Color& color, const std::vector<Vec2f>& points) {
 		const auto pos = std::make_unique<Point2D[]>(points.size());
 		for (size_t i = 0; i < points.size(); i++) {
 			pos[i] = { points[i].x, points[i].y };

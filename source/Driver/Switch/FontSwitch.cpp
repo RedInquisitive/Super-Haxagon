@@ -142,10 +142,10 @@ namespace SuperHaxagon {
 		return width;
 	}
 
-	void FontSwitch::draw(const Color& color, const Point& position, Alignment alignment, const std::string& text) {
+	void FontSwitch::draw(const Color& color, const Vec2f& position, Alignment alignment, const std::string& text) {
 		if (!_loaded) return;
 
-		Point cursor = {
+		Vec2f cursor = {
 			position.x,
 			position.y + static_cast<float>(_top)
 		};
@@ -159,7 +159,7 @@ namespace SuperHaxagon {
 		for (auto c : text) {
 
 			const auto i = static_cast<int>(c);
-			const Point draw = {
+			const Vec2f draw = {
 				std::round(cursor.x + _chars[i].pxOffset.x),
 				std::round(cursor.y - _chars[i].pxOffset.y)
 			};

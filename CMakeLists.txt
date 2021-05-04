@@ -48,6 +48,7 @@ add_executable(SuperHaxagon WIN32 ${DRIVER}
     source/Driver/SFML/AudioPlayerMusicSFML.cpp
     source/Driver/SFML/FontSFML.cpp
     source/Driver/SFML/PlatformSFML.cpp
+    source/Driver/SFML/SurfaceSFML.cpp
 
     source/States/Load.cpp
     source/States/Menu.cpp
@@ -69,7 +70,12 @@ add_executable(SuperHaxagon WIN32 ${DRIVER}
     source/Core/Game.cpp
     source/Core/Metadata.cpp
     source/Core/Main.cpp
-    source/Core/Structs.cpp)
+    
+    source/Core/Structs.cpp
+    source/Core/Surface.cpp
+    source/Core/SurfaceUI.cpp
+    source/Core/SurfaceGame.cpp
+    source/Core/Vector.cpp)
 
 target_link_libraries(SuperHaxagon sfml-graphics sfml-window sfml-audio sfml-system)
 

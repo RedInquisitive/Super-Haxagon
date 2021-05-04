@@ -175,7 +175,7 @@ namespace SuperHaxagon {
 		return buttons;
 	}
 
-	Point Platform3DS::getScreenDim() const {
+	Vec2f Platform3DS::getScreenDim() const {
 		return {static_cast<float>(_drawingOnTop ? 400 : 320), 240};
 	}
 
@@ -199,7 +199,7 @@ namespace SuperHaxagon {
 		C3D_FrameEnd(0);
 	}
 
-	void Platform3DS::drawPoly(const Color& color, const std::vector<Point>& points) {
+	void Platform3DS::drawPoly(const Color& color, const std::vector<Vec2f>& points) {
 		const auto c = C2D_Color32(color.r, color.g, color.b, color.a);
 		for (size_t i = 1; i < points.size() - 1; i++) {
 			C2D_DrawTriangle(

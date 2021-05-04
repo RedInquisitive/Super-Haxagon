@@ -1,22 +1,23 @@
 #include "Driver/SFML/PlatformSFML.hpp"
 
-#include "Core/Structs.hpp"
+#include "Core/SurfaceUI.hpp"
+#include "Core/SurfaceGame.hpp"
 #include "Driver/SFML/AudioLoaderSFML.hpp"
 #include "Driver/SFML/FontSFML.hpp"
 #include "Driver/SFML/AudioPlayerSoundSFML.hpp"
+#include "Driver/SFML/SurfaceSFML.hpp"
 
-#include <array>
 #include <string>
 
 namespace SuperHaxagon {
 	PlatformSFML::PlatformSFML(const Dbg dbg, sf::VideoMode video) : Platform(dbg) {
 		_clock.restart();
-
-		sf::ContextSettings settings;
-		settings.antialiasingLevel = 8;
-
-		_window = std::make_unique<sf::RenderWindow>(video, "Super Haxagon", sf::Style::Default, settings);
-		_window->setVerticalSyncEnabled(true);
+		auto surface = std::make_unique<SurfaceSFML>(video);
+		_window = surface->getWindow();
+		_surface = std::move(surface);
+		_surfaceUI = std::make_unique<SurfaceUI>(_surface.get());
+		_surfaceGame = std::make_unique<SurfaceGame>(_surface.get());
+		_surfaceGameShadows = std::make_unique<SurfaceGame>(_surface.get());
 		_loaded = true;
 	}
 
@@ -64,7 +65,8 @@ namespace SuperHaxagon {
 	}
 
 	std::unique_ptr<Font> PlatformSFML::loadFont(const std::string& path, const int size) {
-		return std::make_unique<FontSFML>(*this, path, static_cast<float>(size));
+		auto* surface = static_cast<SurfaceSFML*>(_surface.get());
+		return std::make_unique<FontSFML>(surface, path, static_cast<float>(size));
 	}
 
 	void PlatformSFML::playSFX(AudioLoader& audio) {
@@ -106,36 +108,8 @@ namespace SuperHaxagon {
 		buttons.select = sf::Keyboard::isKeyPressed(sf::Keyboard::Enter);
 		buttons.back = sf::Keyboard::isKeyPressed(sf::Keyboard::Escape);
 		buttons.quit = sf::Keyboard::isKeyPressed(sf::Keyboard::Delete);
-		buttons.left = sf::Keyboard::isKeyPressed(sf::Keyboard::Left) | sf::Keyboard::isKeyPressed(sf::Keyboard::A);
-		buttons.right = sf::Keyboard::isKeyPressed(sf::Keyboard::Right) | sf::Keyboard::isKeyPressed(sf::Keyboard::D);
+		buttons.left = sf::Keyboard::isKeyPressed(sf::Keyboard::Left) || sf::Keyboard::isKeyPressed(sf::Keyboard::A);
+		buttons.right = sf::Keyboard::isKeyPressed(sf::Keyboard::Right) || sf::Keyboard::isKeyPressed(sf::Keyboard::D);
 		return buttons;
-	}
-
-	Point PlatformSFML::getScreenDim() const {
-		Point point{};
-		point.x = static_cast<float>(_window->getSize().x);
-		point.y = static_cast<float>(_window->getSize().y);
-		return point;
-	}
-
-	void PlatformSFML::screenBegin() {
-		_window->clear(sf::Color::Black);
-	}
-
-	void PlatformSFML::screenFinalize() {
-		_window->display();
-	}
-
-	void PlatformSFML::drawPoly(const Color& color, const std::vector<Point>& points) {
-		const sf::Color sfColor{ color.r, color.g, color.b, color.a };
-		sf::ConvexShape convex(points.size());
-		convex.setPosition(0, 0);
-		convex.setFillColor(sfColor);
-		auto index = 0;
-		for (const auto& point : points) {
-			convex.setPoint(index++, sf::Vector2f(static_cast<float>(point.x), static_cast<float>(point.y)));
-		}
-
-		_window->draw(convex);
 	}
 }

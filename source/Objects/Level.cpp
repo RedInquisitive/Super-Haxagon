@@ -3,6 +3,7 @@
 #include "Core/Game.hpp"
 #include "Core/Twist.hpp"
 #include "Core/Platform.hpp"
+#include "Core/SurfaceGame.hpp"
 #include "Factories/LevelFactory.hpp"
 #include "Factories/PatternFactory.hpp"
 
@@ -17,7 +18,7 @@ namespace SuperHaxagon {
 		}
 
 		//fetch a starting pattern
-		_patterns.emplace_back(getRandomPattern(rng).instantiate(rng, patternDistCreate));
+		_patterns.emplace_back(getRandomPattern(rng)->instantiate(rng, patternDistCreate));
 
 		//set up the amount of sides the level should have.
 		_sidesLast = _patterns.front().getSides();
@@ -27,7 +28,7 @@ namespace SuperHaxagon {
 
 	Level::~Level() = default;
 
-	void Level::update(Twist& rng, const float patternDistDelete, const float patternDistCreate, const float dilation) {
+	void Level::update(Twist& rng, const float dilation) {
 		// Update frame
 		_frame += dilation;
 		
@@ -63,9 +64,9 @@ namespace SuperHaxagon {
 
 		// Move the walls (either closer to the player or away from the hexagon)
 		if (_multiplierWalls > 0) {
-			advanceWalls(rng, patternDistDelete, patternDistCreate);
+			advanceWalls(rng, SCALE_HEX_LENGTH, 2.0f);
 		} else {
-			reverseWalls(rng, patternDistDelete, patternDistCreate);
+			reverseWalls(rng, 2.0f, 0.0f);
 		}
 
 		// Rotate level
@@ -98,37 +99,33 @@ namespace SuperHaxagon {
 		}
 	}
 
-	void Level::draw(Game& game, const float scale, const float offsetWall) const {
-
+	void Level::draw(SurfaceGame& surface, SurfaceGame* shadows, const float offset) const {
 		// Calculate colors
 		const auto percentTween = _tweenFrame / static_cast<float>(_factory->getSpeedPulse());
 		const auto fg = interpolateColor(_color.at(LocColor::FG), _colorNext.at(LocColor::FG), percentTween);
 		const auto bg1 = interpolateColor(_color.at(LocColor::BG1), _colorNext.at(LocColor::BG1), percentTween);
 		const auto bg2 = interpolateColor(_color.at(LocColor::BG2), _colorNext.at(LocColor::BG2), percentTween);
 
-		// Fix for triangle levels
-		const auto diagonal = _sidesTween >= 3.0f && _sidesTween < 4.0f ?  2.0f : 1.0f;
+		surface.reset();
+		surface.setRotation(_rotation);
+		surface.setZoom(1.0f + _pulse + offset);
+		surface.setWallOffset(offset);
+		
+		surface.drawBackground(_bgInverted ? bg2 : bg1, _bgInverted ? bg1 : bg2, _sidesTween);
 
-		const auto center = game.getScreenCenter();
-		const auto shadow = game.getShadowOffset();
-
-		game.drawBackground(_bgInverted ? bg2 : bg1, _bgInverted ? bg1 : bg2, center, diagonal, _rotation, _sidesTween);
-
-		const auto cursorDistance = SCALE_HEX_LENGTH + SCALE_HUMAN_PADDING;
-
-		// Draw shadows, if supported
-		if (static_cast<int>(game.getPlatform().supports() & Supports::SHADOWS)) {
-			const Point offsetFocus = { center.x + shadow.x, center.y + shadow.y };
-			game.drawPatterns(COLOR_SHADOW, offsetFocus, _patterns, _rotation, _sidesTween, offsetWall + _pulse, scale);
-			game.drawRegular(COLOR_SHADOW, offsetFocus, (SCALE_HEX_LENGTH + _pulse) * scale, _rotation, _sidesTween);
-			if (_showCursor) game.drawCursor(COLOR_SHADOW, offsetFocus, _cursorPos, _rotation, _pulse + cursorDistance, scale);
+		if (shadows) {
+			shadows->copySettings(surface);
+			shadows->setTranslate({ 0.0f, -0.01f });
+			shadows->setDepth(-0.05f);
+			shadows->drawPatterns(COLOR_SHADOW, _patterns, _sidesTween);
+			shadows->drawRegular(COLOR_SHADOW, SCALE_HEX_LENGTH, _sidesTween);
+			if (_showCursor) shadows->drawCursor(COLOR_SHADOW, SCALE_HEX_LENGTH + SCALE_HUMAN_PADDING, _cursorPos);
 		}
 
-		// Draw real thing
-		game.drawPatterns(fg, center, _patterns, _rotation, _sidesTween, offsetWall + _pulse, scale);
-		game.drawRegular(fg, center, (SCALE_HEX_LENGTH + _pulse) * scale, _rotation, _sidesTween);
-		game.drawRegular(bg2, center, (SCALE_HEX_LENGTH - SCALE_HEX_BORDER + _pulse) * scale, _rotation, _sidesTween);
-		if (_showCursor) game.drawCursor(fg, center, _cursorPos, _rotation, _pulse + cursorDistance, scale);
+		surface.drawPatterns(fg, _patterns, _sidesTween);
+		surface.drawRegular(fg, SCALE_HEX_LENGTH, _sidesTween);
+		surface.drawRegular(bg2, (SCALE_HEX_LENGTH - SCALE_HEX_BORDER), _sidesTween);
+		if (_showCursor) surface.drawCursor(fg, SCALE_HEX_LENGTH + SCALE_HUMAN_PADDING, _cursorPos);
 	}
 
 	Movement Level::collision(const float cursorDistance, const float dilation) const {
@@ -167,11 +164,11 @@ namespace SuperHaxagon {
 	}
 
 	void Level::left(const float dilation) {
-		_cursorPos += _factory->getSpeedCursor() * dilation;
+		_cursorPos -= _factory->getSpeedCursor() * dilation;
 	}
 
 	void Level::right(const float dilation) {
-		_cursorPos -= _factory->getSpeedCursor() * dilation;
+		_cursorPos += _factory->getSpeedCursor() * dilation;
 	}
 
 	void Level::clamp() {
@@ -187,8 +184,8 @@ namespace SuperHaxagon {
 		_bgInverted = !_bgInverted;
 	}
 	
-	void Level::pulse(const float scale) {
-		_pulse = PULSE_DISTANCE * scale;
+	void Level::pulse(const float pulse) {
+		_pulse = PULSE_DISTANCE * pulse;
 	}
 
 	void Level::setWinFactory(const LevelFactory* factory) {
@@ -218,16 +215,16 @@ namespace SuperHaxagon {
 			_patterns.pop_front();
 			_sidesCurrent = _patterns.front().getSides();
 
-			// Delay the level if the shifted pattern does  not have the same sides as the last.
+			// Delay the level if the shifted pattern does not have the same sides as the last.
 			if (_sidesLast != _sidesCurrent) {
-				_delayMax = FRAMES_PER_CHANGE_SIDE / _factory->getSpeedWall() * static_cast<float>(std::abs(_sidesCurrent - _sidesLast));
+				_delayMax = FRAMES_PER_CHANGE_SIDE * static_cast<float>(std::abs(_sidesCurrent - _sidesLast));
 				_delayFrame = _delayMax;
 			}
 		}
 
 		// Create new pattern if needed
 		if (_patterns.size() < 2 || _patterns.back().getFurthestWallDistance() < patternDistCreate) {
-			_patterns.emplace_back(getRandomPattern(rng).instantiate(rng, _patterns.back().getFurthestWallDistance()));
+			_patterns.emplace_back(getRandomPattern(rng)->instantiate(rng, _patterns.back().getFurthestWallDistance()));
 		}
 	}
 
@@ -239,7 +236,7 @@ namespace SuperHaxagon {
 		// Create a new pattern at the front.
 		// We need to advance it so the last wall is where we create the patterns
 		if (_patterns.front().getClosestWallDistance() > patternDistCreate + _frontGap && _autoPatternCreate) {
-			auto pattern = getRandomPattern(rng).instantiate(rng, patternDistCreate);
+			auto pattern = getRandomPattern(rng)->instantiate(rng, patternDistCreate);
 			_frontGap = pattern.getClosestWallDistance() * 1.5f; // Too small of a gap otherwise
 			pattern.advance(pattern.getFurthestWallDistance());
 			_patterns.emplace_front(pattern);
@@ -247,12 +244,12 @@ namespace SuperHaxagon {
 		}
 	}
 
-	const PatternFactory& Level::getRandomPattern(Twist& rng) {
+	std::shared_ptr<PatternFactory> Level::getRandomPattern(Twist& rng) {
 		const auto& patterns = _factory->getPatterns();
 		if (_sameCount <= 0) {
-			const auto& pattern = *patterns[rng.rand(static_cast<int>(patterns.size()) - 1)];
-			if (pattern.getSides() != _sameSides) {
-				_sameSides = pattern.getSides();
+			const auto& pattern = patterns[rng.rand(static_cast<int>(patterns.size()) - 1)];
+			if (pattern->getSides() != _sameSides) {
+				_sameSides = pattern->getSides();
 				_sameCount = rng.rand(MIN_SAME_SIDES, MAX_SAME_SIDES);
 			}
 
@@ -273,9 +270,9 @@ namespace SuperHaxagon {
 		if (selectable.empty()) {
 			_sameCount = 0;
 			_sameSides = 0;
-			return *patterns[rng.rand(static_cast<int>(patterns.size()) - 1)];
-		} 
+			return patterns[rng.rand(static_cast<int>(patterns.size()) - 1)];
+		}
 
-		return *selectable[rng.rand(static_cast<int>(selectable.size()) - 1)];
+		return selectable[rng.rand(static_cast<int>(selectable.size()) - 1)];
 	}
 }

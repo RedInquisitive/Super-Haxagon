@@ -1,15 +1,15 @@
 #include "Driver/SFML/FontSFML.hpp"
 
 #include "Core/Structs.hpp"
-#include "Driver/SFML/PlatformSFML.hpp"
+#include "Driver/SFML/SurfaceSFML.hpp"
 
 #include <cmath>
 
 namespace SuperHaxagon {
-	FontSFML::FontSFML(PlatformSFML& platform, const std::string& path, const float size) :
-		_platform(platform),
-		_scale(1),
-		_size(size) {
+	FontSFML::FontSFML(SurfaceSFML* surface, const std::string& path, const float size) :
+			_surface(surface),
+			_scale(1),
+			_size(size) {
 		_loaded = _font.loadFromFile(path + ".ttf");
 	}
 
@@ -33,8 +33,8 @@ namespace SuperHaxagon {
 		return sfText.getLocalBounds().width;
 	}
 
-	void FontSFML::draw(const Color& color, const Point& position, const Alignment alignment, const std::string& text) {
-		if (!_loaded) return;
+	void FontSFML::draw(const Color& color, const Vec2f& position, const Alignment alignment, const std::string& text) {
+		if (!_loaded || !_surface) return;
 		sf::Text sfText;
 		sf::Vector2f sfPosition;
 		sfPosition.y = static_cast<float>(position.y);
@@ -51,6 +51,6 @@ namespace SuperHaxagon {
 		sfPosition.y = std::round(sfPosition.y);
 		sfText.setPosition(sfPosition);
 
-		_platform.getWindow().draw(sfText);
+		_surface->getWindow()->draw(sfText);
 	}
 }

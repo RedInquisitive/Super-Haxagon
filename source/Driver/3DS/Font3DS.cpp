@@ -29,7 +29,7 @@ namespace SuperHaxagon {
 		return _size + _size * 4.0f/32.0f;
 	}
 
-	void Font3DS::draw(const Color& color, const Point& position, const Alignment alignment, const std::string& str) {
+	void Font3DS::draw(const Color& color, const Vec2f& position, const Alignment alignment, const std::string& str) {
 		C2D_Text text;
 		auto temp = position;
 		const auto c = C2D_Color32(color.r, color.g, color.b, color.a);

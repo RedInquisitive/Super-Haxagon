@@ -20,11 +20,11 @@ namespace SuperHaxagon {
 		return gui_gc_getStringWidth(_gc, _font, chars.get(), 0, text.length());
 	}
 
-	void FontNspire::draw(const Color& color, const Point& position, const Alignment alignment, const std::string& text) {
+	void FontNspire::draw(const Color& color, const Vec2f& position, const Alignment alignment, const std::string& text) {
 		gui_gc_setColorRGB(_gc, color.r, color.b, color.g);
 		gui_gc_setFont(_gc, _font);
 
-		Point translate{};
+		Vec2f translate{};
 		const auto chars = utf16(text);
 		const auto width = getWidth(text);
 		if (alignment == Alignment::LEFT) translate.x = position.x;

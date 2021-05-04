@@ -3,6 +3,8 @@
 #include "Core/Game.hpp"
 #include "Core/Platform.hpp"
 #include "Core/Font.hpp"
+#include "Core/SurfaceGame.hpp"
+#include "Core/SurfaceUI.hpp"
 #include "Factories/LevelFactory.hpp"
 #include "Objects/Level.hpp"
 #include "States/Load.hpp"
@@ -12,7 +14,6 @@
 
 #include <cstring>
 #include <ostream>
-#include <fstream>
 
 namespace SuperHaxagon {
 
@@ -84,11 +85,12 @@ namespace SuperHaxagon {
 		return nullptr;
 	}
 
-	void Over::drawTop(const float scale) {
-		_level->draw(_game, scale, _offset);
+	void Over::drawTop(SurfaceGame& surface, SurfaceGame* shadows) {
+		_level->draw(surface, shadows, (_offset - 1.0f) / 100.0f);
 	}
 
-	void Over::drawBot(const float scale) {
+	void Over::drawBotUI(SurfaceUI& surface) {
+		const auto scale = surface.getScale();
 		auto& large = _game.getFontLarge();
 		auto& small = _game.getFontSmall();
 		large.setScale(scale);
@@ -96,16 +98,16 @@ namespace SuperHaxagon {
 
 		const auto padText = 3 * scale;
 		const auto margin = 20 * scale;
-		const auto width = _platform.getScreenDim().x;
-		const auto height = _platform.getScreenDim().y;
+		const auto width = surface.getScreenDim().x;
+		const auto height = surface.getScreenDim().y;
 		const auto heightLarge = large.getHeight();
 		const auto heightSmall = small.getHeight();
 
-		const Point posGameOver = {width / 2, margin};
-		const Point posTime = {width / 2, posGameOver.y + heightLarge + padText};
-		const Point posBest = {width / 2, posTime.y + heightSmall + padText};
-		const Point posB = {width / 2, height - margin - heightSmall};
-		const Point posA = {width / 2, posB.y - heightSmall - padText};
+		const Vec2f posGameOver = {width / 2, margin};
+		const Vec2f posTime = {width / 2, posGameOver.y + heightLarge + padText};
+		const Vec2f posBest = {width / 2, posTime.y + heightSmall + padText};
+		const Vec2f posB = {width / 2, height - margin - heightSmall};
+		const Vec2f posA = {width / 2, posB.y - heightSmall - padText};
 
 		const auto textScore = std::string("TIME: ") + getTime(_score);
 		large.draw(COLOR_WHITE, posGameOver, Alignment::CENTER,  _text);

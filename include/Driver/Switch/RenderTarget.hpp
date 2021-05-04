@@ -11,14 +11,14 @@ namespace SuperHaxagon {
 	static constexpr int BUFFER_RESIZE_STEP = 500;
 
 	struct Vertex {
-		Point p;
+		Vec2f p;
 		Color c;
 		float z;
 	};
 
 	struct VertexUV {
-		Point p;
-		Point uv;
+		Vec2f p;
+		Vec2f uv;
 		Color c;
 		float z;
 	};

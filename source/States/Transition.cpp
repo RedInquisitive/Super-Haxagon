@@ -3,6 +3,7 @@
 #include "Core/Game.hpp"
 #include "Core/Platform.hpp"
 #include "Core/Font.hpp"
+#include "Core/SurfaceUI.hpp"
 #include "Factories/LevelFactory.hpp"
 #include "Objects/Level.hpp"
 #include "States/Play.hpp"
@@ -55,22 +56,23 @@ namespace SuperHaxagon {
 		return nullptr;
 	}
 
-	void Transition::drawTop(const float scale) {
-		_level->draw(_game, scale, _offset);
+	void Transition::drawTop(SurfaceGame& surface, SurfaceGame* shadows) {
+		_level->draw(surface, shadows, 0);
 	}
 
-	void Transition::drawBot(const float scale) {
+	void Transition::drawBotUI(SurfaceUI& surface) {
+		const auto scale = surface.getScale();
 		auto& large = _game.getFontLarge();
 		large.setScale(scale);
 
 		const auto* const text = "WONDERFUL";
 		const auto pad = 6 * scale;
 		const auto width = large.getWidth(text);
-		const auto center = _platform.getScreenDim().x / 2;
+		const auto center = surface.getScreenDim().x / 2;
 
-		const Point posText = {center, pad};
-		const Point bkgSize = {width + pad * 2, large.getHeight() + pad * 2};
-		const std::vector<Point> trap = {
+		const Vec2f posText = {center, pad};
+		const Vec2f bkgSize = {width + pad * 2, large.getHeight() + pad * 2};
+		const std::vector<Vec2f> trap = {
 			{center - bkgSize.x/2 - bkgSize.y/2, 0},
 			{center + bkgSize.x/2 + bkgSize.y/2, 0},
 			{center + bkgSize.x/2, bkgSize.y},
@@ -79,7 +81,7 @@ namespace SuperHaxagon {
 
 		const auto percent = getPulse(_frames, Play::PULSE_TIME, 0);
 		const auto pulse = interpolateColor(PULSE_LOW, PULSE_HIGH, percent);
-		_platform.drawPoly(COLOR_TRANSPARENT, trap);
+		surface.drawPolyUI(COLOR_TRANSPARENT, trap);
 		large.draw(pulse, posText, Alignment::CENTER, text);
 	}
 }

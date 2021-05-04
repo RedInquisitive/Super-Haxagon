@@ -26,25 +26,20 @@ namespace SuperHaxagon {
 
 		std::string getButtonName(const Buttons& button) override;
 		Buttons getPressed() override;
-		Point getScreenDim() const override;
-
-		void screenBegin() override;
-		void screenFinalize() override;
-		void drawPoly(const Color& color, const std::vector<Point>& points) override;
 
 		std::unique_ptr<Twist> getTwister() override = 0;
 
 		void shutdown() override = 0;
 		void message(Dbg dbg, const std::string& where, const std::string& message) override = 0;
 
-		sf::RenderWindow& getWindow() const {return *_window;}
+	protected:
+		sf::RenderWindow* _window;
 
 	private:
 		bool _loaded = false;
 		bool _focus = true;
 		float _delta = 0.0;
 		sf::Clock _clock;
-		std::unique_ptr<sf::RenderWindow> _window;
 		std::deque<std::unique_ptr<AudioPlayer>> _sfx;
 	};
 }

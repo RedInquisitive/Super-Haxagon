@@ -30,11 +30,11 @@ namespace SuperHaxagon {
 		
 		std::string getButtonName(const Buttons& button) override;
 		Buttons getPressed() override;
-		Point getScreenDim() const override;
+		Vec2f getScreenDim() const override;
 		
 		void screenBegin() override;
 		void screenFinalize() override;
-		void drawPoly(const Color& color, const std::vector<Point>& points) override;
+		void drawPoly(const Color& color, const std::vector<Vec2f>& points) override;
 
 		void shutdown() override;
 		void message(Dbg dbg, const std::string& where, const std::string& message) override;

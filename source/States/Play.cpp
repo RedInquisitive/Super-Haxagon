@@ -5,14 +5,14 @@
 #include "Core/Font.hpp"
 #include "Core/Platform.hpp"
 #include "Core/AudioPlayer.hpp"
+#include "Core/SurfaceUI.hpp"
+#include "Core/SurfaceGame.hpp"
 #include "Factories/LevelFactory.hpp"
 #include "Objects/Level.hpp"
 #include "States/Over.hpp"
 #include "States/Quit.hpp"
 #include "States/Transition.hpp"
 #include "States/Win.hpp"
-
-#include <cmath>
 
 namespace SuperHaxagon {
 
@@ -31,7 +31,6 @@ namespace SuperHaxagon {
 		auto* bgm = _platform.getBGM();
 		if (bgm) bgm->play();
 		_platform.playSFX(_game.getSFXBegin());
-		_game.setShadowAuto(true);
 	}
 
 	void Play::exit() {
@@ -40,15 +39,6 @@ namespace SuperHaxagon {
 	}
 
 	std::unique_ptr<State> Play::update(const float dilation) {
-		// Screen ratio divided by the screen ratio of the 3DS times it's diagonal
-		const auto maxRenderDistance = _game.getScreenDimMax() / _game.getScreenDimMin() / 1.666f * 233.47f;
-
-		// Render the level with a skewed 3D look
-		auto skewFrameMax = static_cast<float>(_level->getLevelFactory().getSpeedPulse()) * 2.5f;
-		skewFrameMax = skewFrameMax < SKEW_MIN_FRAMES ? SKEW_MIN_FRAMES : skewFrameMax;
-		_skewFrame += dilation * _skewDirection * (_level->getLevelFactory().getSpeedRotation() > 0 ? 1.0f : 0);
-		_game.setSkew((-cos(_skewFrame / skewFrameMax * PI) + 1.0f) / 2.0f * SKEW_MAX);
-
 		// It's technically possible that the BGM metadata was not set
 		if (_game.getBGMMetadata()) {
 
@@ -60,13 +50,13 @@ namespace SuperHaxagon {
 			// Apply effects. More can be added here if needed.
 			if (metadata.getMetadata(time, "S")) _level->spin();
 			if (metadata.getMetadata(time, "I")) _level->invertBG();
-			if (metadata.getMetadata(time, "BL")) _level->pulse(1.1f);
-			if (metadata.getMetadata(time, "BS")) _level->pulse(0.7f);
+			if (metadata.getMetadata(time, "BL")) _level->pulse(1.0f);
+			if (metadata.getMetadata(time, "BS")) _level->pulse(0.66f);
 		}
 
 		// Update level
 		const auto previousFrame = _level->getFrame();
-		_level->update(_game.getTwister(), SCALE_HEX_LENGTH, maxRenderDistance, dilation);
+		_level->update(_game.getTwister(), dilation);
 
 		// Button presses
 		const auto pressed = _platform.getPressed();
@@ -132,11 +122,12 @@ namespace SuperHaxagon {
 		return nullptr;
 	}
 
-	void Play::drawTop(const float scale) {
-		_level->draw(_game, scale, 0);
+	void Play::drawTop(SurfaceGame& surface, SurfaceGame* shadows) {
+		_level->draw(surface, shadows, 0);
 	}
 
-	void Play::drawBot(const float scale) {
+	void Play::drawBotUI(SurfaceUI& surface) {
+		const auto scale = surface.getScale();
 		auto& small = _game.getFontSmall();
 
 		// Makes it so the score text doesn't freak out
@@ -154,29 +145,29 @@ namespace SuperHaxagon {
 
 		// Draw the top left POINT/LINE thing
 		// Note, 400 is kind of arbitrary. Perhaps it's needed to update this later.
-		const auto* levelUp = getScoreText(static_cast<int>(_level->getFrame()), _platform.getScreenDim().x <= 400);
-		const Point levelUpPosText = {pad, pad};
-		const Point levelUpBkgSize = {
+		const auto* levelUp = getScoreText(static_cast<int>(_level->getFrame()), surface.getScreenDim().x <= 400);
+		const Vec2f levelUpPosText = {pad, pad};
+		const Vec2f levelUpBkgSize = {
 			small.getWidth(levelUp) + pad * 2,
 			small.getHeight() + pad * 2
 		};
 
 		// Clockwise, from top left
-		const std::vector<Point> levelUpBkg = {
+		const std::vector<Vec2f> levelUpBkg = {
 			{0, 0},
 			{levelUpBkgSize.x + levelUpBkgSize.y / 2, 0},
 			{levelUpBkgSize.x, levelUpBkgSize.y},
 			{0, levelUpBkgSize.y},
 		};
 
-		_platform.drawPoly(COLOR_TRANSPARENT, levelUpBkg);
+		surface.drawPolyUI(COLOR_TRANSPARENT, levelUpBkg);
 		small.draw(COLOR_WHITE, levelUpPosText, Alignment::LEFT, levelUp);
 
 		// Draw the current score
-		const auto screenWidth = _platform.getScreenDim().x;
+		const auto screenWidth = surface.getScreenDim().x;
 		const auto textScore = "TIME: " + getTime(_score);
-		const Point scorePosText = {screenWidth - pad - _scoreWidth, pad};
-		Point scoreBkgSize = {_scoreWidth + pad * 2, small.getHeight() + pad * 2};
+		const Vec2f scorePosText = {screenWidth - pad - _scoreWidth, pad};
+		Vec2f scoreBkgSize = {_scoreWidth + pad * 2, small.getHeight() + pad * 2};
 
 		// Before we draw the score, compute the best time graph.
 		auto drawBar = false;
@@ -202,27 +193,27 @@ namespace SuperHaxagon {
 		}
 
 		// Clockwise, from top left
-		const std::vector<Point> scoreBkg = {
+		const std::vector<Vec2f> scoreBkg = {
 			{screenWidth - scoreBkgSize.x - scoreBkgSize.y / 2, 0},
 			{screenWidth, 0},
 			{screenWidth, scoreBkgSize.y},
 			{screenWidth - scoreBkgSize.x, scoreBkgSize.y}
 		};
 
-		_platform.drawPoly(COLOR_TRANSPARENT, scoreBkg);
+		surface.drawPolyUI(COLOR_TRANSPARENT, scoreBkg);
 		small.draw(COLOR_WHITE, scorePosText, Alignment::LEFT, textScore);
 
 		if (drawBar) {
-			const Point barPos = {scorePosText.x, originalY};
-			const Point barWidth = {_scoreWidth, heightBar};
-			const Point barWidthScore = {_scoreWidth * (_score / highScore), heightBar};
-			_game.drawRect(COLOR_BLACK, barPos, barWidth);
-			_game.drawRect(COLOR_WHITE, barPos, barWidthScore);
+			const Vec2f barPos = {scorePosText.x, originalY};
+			const Vec2f barWidth = {_scoreWidth, heightBar};
+			const Vec2f barWidthScore = {_scoreWidth * (_score / highScore), heightBar};
+			surface.drawRectUI(COLOR_BLACK, barPos, barWidth);
+			surface.drawRectUI(COLOR_WHITE, barPos, barWidthScore);
 		}
 
 		if (drawHigh) {
 			auto textColor = COLOR_WHITE;
-			const Point posBest = {screenWidth - pad, originalY};
+			const Vec2f posBest = {screenWidth - pad, originalY};
 			if (_score - highScore <= PULSE_TIMES * PULSE_TIME) {
 				const auto percent = getPulse(_score, PULSE_TIME, highScore);
 				textColor = interpolateColor(PULSE_LOW, PULSE_HIGH, percent);

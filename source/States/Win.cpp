@@ -1,9 +1,11 @@
 #include "States/Win.hpp"
 
+#include "Core/AudioPlayer.hpp"
 #include "Core/Game.hpp"
 #include "Core/Metadata.hpp"
 #include "Core/Font.hpp"
 #include "Core/Platform.hpp"
+#include "Core/SurfaceUI.hpp"
 #include "Factories/LevelFactory.hpp"
 #include "Objects/Level.hpp"
 #include "States/Over.hpp"
@@ -71,7 +73,6 @@ namespace SuperHaxagon {
 
 	void Win::enter() {
 		_game.loadBGMAudio("/esiannoyamFoEzam", Location::ROM, true);
-		_game.setShadowAuto(true);
 	}
 	
 	std::unique_ptr<State> Win::update(const float dilation) {
@@ -139,18 +140,18 @@ namespace SuperHaxagon {
 
 		_timer -= dilation;
 
-		const auto maxRenderDistance = SCALE_BASE_DISTANCE * (_game.getScreenDimMax() / 400);
 		auto& level = *_level;
-		level.update(_game.getTwister(), maxRenderDistance, 0, dilation);
-		
+		level.update(_game.getTwister(), dilation);
+
 		return nullptr;
 	}
 
-	void Win::drawTop(const float scale) {
-		_level->draw(_game, scale, 0);
+	void Win::drawTop(SurfaceGame& surface, SurfaceGame* shadows) {
+		_level->draw(surface, shadows, 0);
 	}
 
-	void Win::drawBot(const float scale) {
+	void Win::drawBotUI(SurfaceUI& surface) {
+		const auto scale = surface.getScale();
 		auto& large = _game.getFontLarge();
 		auto& small = _game.getFontSmall();
 		large.setScale(scale);
@@ -158,13 +159,13 @@ namespace SuperHaxagon {
 
 		const auto padText = 3 * scale;
 		const auto margin = 20 * scale;
-		const auto width = _platform.getScreenDim().x;
-		const auto height = _platform.getScreenDim().y;
+		const auto width = surface.getScreenDim().x;
+		const auto height = surface.getScreenDim().y;
 		const auto heightSmall = small.getHeight();
 
-		const Point posCredits = { width / 2, margin };
-		const Point posB = { width / 2, height - margin - heightSmall };
-		const Point posA = { width / 2, posB.y - heightSmall - padText };
+		const Vec2f posCredits = { width / 2, margin };
+		const Vec2f posB = { width / 2, height - margin - heightSmall };
+		const Vec2f posA = { width / 2, posB.y - heightSmall - padText };
 
 		if (_timer > 0.0f) {
 			large.draw(COLOR_WHITE, posCredits, Alignment::CENTER, _credits[_index].name);

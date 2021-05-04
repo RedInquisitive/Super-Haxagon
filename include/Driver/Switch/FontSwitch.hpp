@@ -13,10 +13,10 @@ namespace SuperHaxagon {
 	static constexpr int GLYPH_END = 128;
 
 	struct CharacterInfo {
-		Point pxAdvance;
-		Point pxOffset;
-		Point pxDim;
-		Point uv;
+		Vec2f pxAdvance;
+		Vec2f pxOffset;
+		Vec2f pxDim;
+		Vec2f uv;
 		float x;
 	};
 
@@ -30,7 +30,7 @@ namespace SuperHaxagon {
 		void setScale(float) override {};
 		float getHeight() const override;
 		float getWidth(const std::string& text) const override;
-		void draw(const Color& color, const Point& position, Alignment alignment, const std::string& text) override;
+		void draw(const Color& color, const Vec2f& position, Alignment alignment, const std::string& text) override;
 
 	private:
 		PlatformSwitch& _platform;

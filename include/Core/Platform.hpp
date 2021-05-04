@@ -2,17 +2,20 @@
 #define SUPER_HAXAGON_PLATFORM_HPP
 
 #include "AudioLoader.hpp"
-#include "AudioPlayer.hpp"
+#include "Font.hpp"
 
 #include <memory>
 #include <string>
-#include <vector>
 
 namespace SuperHaxagon {
-	struct Point;
 	struct Color;
 	class Twist;
 	class Font;
+	class Surface;
+	class SurfaceUI;
+	class SurfaceGame;
+	class AudioLoader;
+	class AudioPlayer;
 
 	enum class Dbg {
 		INFO,
@@ -49,12 +52,11 @@ namespace SuperHaxagon {
 		return static_cast<Supports>(static_cast<T>(lhs) & static_cast<T>(rhs));
 	}
 
-
 	class Platform {
 	public:
-		explicit Platform(const Dbg dbg) : _dbg(dbg) {}
+		explicit Platform(Dbg dbg);
 		Platform(Platform&) = delete;
-		virtual ~Platform() = default;
+		virtual ~Platform();
 
 		virtual bool loop() = 0;
 		virtual float getDilation() = 0;
@@ -71,12 +73,6 @@ namespace SuperHaxagon {
 
 		virtual std::string getButtonName(const Buttons& button) = 0;
 		virtual Buttons getPressed() = 0;
-		virtual Point getScreenDim() const = 0;
-
-		virtual void screenBegin() = 0;
-		virtual void screenSwap();
-		virtual void screenFinalize() = 0;
-		virtual void drawPoly(const Color& color, const std::vector<Point>& points) = 0;
 
 		virtual std::unique_ptr<Twist> getTwister() = 0;
 
@@ -84,9 +80,18 @@ namespace SuperHaxagon {
 		virtual void message(Dbg level, const std::string& where, const std::string& message) = 0;
 		virtual Supports supports();
 
+		Surface& getSurface() const;
+		SurfaceUI& getSurfaceUI() const;
+		SurfaceGame& getSurfaceGame() const;
+		SurfaceGame* getSurfaceGameShadows() const;
+
 	protected:
 		Dbg _dbg;
-		std::unique_ptr<AudioPlayer> _bgm{};
+		std::unique_ptr<AudioPlayer> _bgm;
+		std::unique_ptr<Surface> _surface;
+		std::unique_ptr<SurfaceUI> _surfaceUI;
+		std::unique_ptr<SurfaceGame> _surfaceGame;
+		std::unique_ptr<SurfaceGame> _surfaceGameShadows;
 	};
 }
 

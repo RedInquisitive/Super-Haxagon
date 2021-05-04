@@ -4,11 +4,12 @@
 #include "Core/Metadata.hpp"
 #include "Core/Font.hpp"
 #include "Core/Platform.hpp"
+#include "Core/SurfaceGame.hpp"
+#include "Core/SurfaceUI.hpp"
 #include "Factories/LevelFactory.hpp"
 #include "States/Play.hpp"
 #include "States/Quit.hpp"
 
-#include <array>
 #include <algorithm>
 
 namespace SuperHaxagon {
@@ -30,8 +31,6 @@ namespace SuperHaxagon {
 	Menu::~Menu() = default;
 
 	void Menu::enter() {
-		_game.setSkew(0.0);
-		_game.setShadowAuto(false);
 		_game.loadBGMAudio("/werq", Location::ROM, false);
 		_platform.playSFX(_game.getSFXHexagon());
 	}
@@ -49,11 +48,11 @@ namespace SuperHaxagon {
 			}
 
 			if (press.right) {
-				_transitionDirection = 1;
+				_transitionDirection = -1;
 				++_selected;
 				if (_selected == _game.getLevels().end()) _selected = _game.getLevels().begin();
 			} else if (press.left) {
-				_transitionDirection = -1;
+				_transitionDirection = 1;
 				if (_selected == _game.getLevels().begin()) _selected = _game.getLevels().end();
 				--_selected;
 			}
@@ -107,21 +106,27 @@ namespace SuperHaxagon {
 		return nullptr;
 	}
 
-	void Menu::drawTop(float scale) {
-		auto percentRotated = _frameRotation / FRAMES_PER_TRANSITION;
-		auto rotation = percentRotated * TAU/6.0f;
+	void Menu::drawTop(SurfaceGame& surface, SurfaceGame* shadows) {
+		const auto percentRotated = _frameRotation / FRAMES_PER_TRANSITION;
+		auto rotation = percentRotated * TAU / 6.0f;
 
 		// If the user is going to the left, flip the radians so the animation plays backwards.
-		if(_transitionDirection == -1) {
+		if (_transitionDirection == -1) {
 			rotation *= -1.0f;
 		}
+
+		surface.reset();
+		surface.setRotation(-rotation);
+		surface.setTranslate({0, -1.0f / 3.0f});
+		surface.setPitch(15 * TAU / 16);
+		surface.setZoom(SCALE_MENU);
 
 		// Colors
 		Color fg{};
 		Color bg1{};
 		Color bg2{};
 		Color bg3{};
-		if(_transitionDirection) {
+		if (_transitionDirection) {
 			fg = interpolateColor(_color[LocColor::FG], _colorNext[LocColor::FG], percentRotated);
 			bg1 = interpolateColor(_color[LocColor::BG1], _colorNext[LocColor::BG2], percentRotated); // Note: BG1 to BG2
 			bg2 = interpolateColor(_color[LocColor::BG2], _colorNext[LocColor::BG1], percentRotated); // Note: BG2 to BG1
@@ -133,54 +138,53 @@ namespace SuperHaxagon {
 			bg3 = bg2;
 		}
 
-		auto screen = _platform.getScreenDim();
-		auto shadow = _game.getShadowOffset();
-
-		Point focus = {screen.x/2, screen.y/6 * 5};
-		Point offsetFocus = {focus.x + shadow.x, focus.y + shadow.y};
-
 		// Home screen always has 6 sides.
 		// Use a multiplier of 1.5 because the view is shifted down
 		// Note: Draw cursor TAU/4 = Up, no rotation
-		_game.drawBackground(bg1, bg2, focus, 1.5, rotation, 6.0);
+		surface.drawBackground(bg1, bg2, 6.0);
 
-		
-		// Shadows, if supported
-		if (static_cast<int>(_platform.supports() & Supports::SHADOWS)) {
-			_game.drawRegular(COLOR_SHADOW, offsetFocus, SCALE_HEX_LENGTH * SCALE_MENU * scale, rotation, 6.0);
-			_game.drawCursor(COLOR_SHADOW, offsetFocus, TAU / 4.0f, 0, SCALE_HEX_LENGTH + SCALE_HUMAN_PADDING + 4, scale * SCALE_MENU * 0.75f);
+		if (shadows) {
+			shadows->copySettings(surface);
+			shadows->setTranslate({ 0, -1.0f / 3.0f - 0.01f * SCALE_MENU});
+			shadows->setDepth(-0.1f);
+			shadows->drawRegular(COLOR_SHADOW, SCALE_HEX_LENGTH, 6.0);
+			shadows->drawCursor(COLOR_SHADOW, SCALE_HEX_LENGTH + SCALE_HUMAN_PADDING, 3.0f * TAU / 4.0f - rotation);
 		}
 
 		// Geometry
-		_game.drawRegular(fg, focus,SCALE_HEX_LENGTH * SCALE_MENU * scale, rotation, 6.0);
-		_game.drawRegular(bg3, focus, (SCALE_HEX_LENGTH - SCALE_HEX_BORDER / 2) * SCALE_MENU * scale, rotation, 6.0);
-		_game.drawCursor(fg, focus, TAU / 4.0f, 0, SCALE_HEX_LENGTH + SCALE_HUMAN_PADDING + 4, scale * SCALE_MENU * 0.75f);
+		surface.drawRegular(fg, SCALE_HEX_LENGTH,6.0);
+		surface.drawRegular(bg3, SCALE_HEX_LENGTH - SCALE_HEX_BORDER, 6.0);
+		surface.drawCursor(fg, SCALE_HEX_LENGTH + SCALE_HUMAN_PADDING, 3.0f * TAU / 4.0f - rotation);
+		//surface.drawRect({ 255, 0, 0, 255 }, { -1, -1 }, { 1, 1 });
+	}
 
+	void Menu::drawTopUI(SurfaceUI& surface) {
 		auto& large = _game.getFontLarge();
 		auto& small = _game.getFontSmall();
 
 		// Padding for text
-		auto pad = 3 * scale;
+		const auto pad = 3 * surface.getScale();
+		const auto screen = surface.getScreenDim();
 
 		// Actual text
 		auto& level = **_selected;
-		auto scoreTime = "BEST: " + getTime(static_cast<float>(level.getHighScore()));
-		auto diff = "DIFF: " + level.getDifficulty();
-		auto mode = "MODE: " + level.getMode();
-		auto auth = "AUTH: " + level.getCreator();
-		auto renderCreator = level.getCreator() != "REDHAT";
-		large.setScale(scale);
-		small.setScale(scale);
+		const auto scoreTime = "BEST: " + getTime(static_cast<float>(level.getHighScore()));
+		const auto diff = "DIFF: " + level.getDifficulty();
+		const auto mode = "MODE: " + level.getMode();
+		const auto auth = "AUTH: " + level.getCreator();
+		const auto renderCreator = level.getCreator() != "REDHAT";
+		large.setScale(surface.getScale());
+		small.setScale(surface.getScale());
 
 		// Text positions
-		const Point posTitle = {pad, pad};
-		const Point posDifficulty = {pad, posTitle.y + pad + large.getHeight()};
-		const Point posMode = {pad, posDifficulty.y + pad + small.getHeight()};
-		const Point posCreator = {pad, posMode.y + (renderCreator ? pad + small.getHeight() : 0)};
-		const Point posTime = {pad, screen.y - small.getHeight() - pad};
+		const Vec2f posTitle = {pad, pad};
+		const Vec2f posDifficulty = {pad, posTitle.y + pad + large.getHeight()};
+		const Vec2f posMode = {pad, posDifficulty.y + pad + small.getHeight()};
+		const Vec2f posCreator = {pad, posMode.y + (renderCreator ? pad + small.getHeight() : 0)};
+		const Vec2f posTime = {pad, screen.y - small.getHeight() - pad};
 
 		// Text background for information at top left of screen
-		Point infoSize = {std::max({
+		const Vec2f infoSize = {std::max({
 			large.getWidth(level.getName()),
 			small.getWidth(diff),
 			small.getWidth(mode),
@@ -188,28 +192,28 @@ namespace SuperHaxagon {
 		}) + pad * 2, posCreator.y + pad + small.getHeight()};
 
 		// Clockwise, from Top Left
-		std::vector<Point> info{
+		const std::vector<Vec2f> info{
 			{0, 0},
 			{infoSize.x + infoSize.y / 2, 0},
 			{infoSize.x, infoSize.y},
 			{0, infoSize.y}
 		};
 
-		_platform.drawPoly(COLOR_TRANSPARENT, info);
+		surface.drawPolyUI(COLOR_TRANSPARENT, info);
 
 		// Score block with triangle
-		Point timeSize = {small.getWidth(scoreTime) + pad * 2, small.getHeight() + pad * 2};
+		const Vec2f timeSize = {small.getWidth(scoreTime) + pad * 2, small.getHeight() + pad * 2};
 
 		// Clockwise, from Top Left
-		const auto screenHeight = _platform.getScreenDim().y;
-		std::vector<Point> time = {
+		const auto screenHeight = surface.getScreenDim().y;
+		const std::vector<Vec2f> time = {
 			{0, screenHeight - timeSize.y},
 			{timeSize.x,  screenHeight - timeSize.y},
 			{timeSize.x + timeSize.y / 2, screenHeight},
 			{0,  screenHeight},
 		};
 
-		_platform.drawPoly(COLOR_TRANSPARENT, time);
+		surface.drawPolyUI(COLOR_TRANSPARENT, time);
 
 		large.draw(COLOR_WHITE, posTitle, Alignment::LEFT, level.getName());
 		small.draw(COLOR_GREY, posDifficulty, Alignment::LEFT, diff);
@@ -218,5 +222,5 @@ namespace SuperHaxagon {
 		small.draw(COLOR_WHITE, posTime, Alignment::LEFT, scoreTime);
 	}
 
-	void Menu::drawBot(float) {}
+	void Menu::drawBotUI(SurfaceUI&) {}
 }
