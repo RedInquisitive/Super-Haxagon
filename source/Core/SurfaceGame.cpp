@@ -12,10 +12,9 @@ namespace SuperHaxagon {
 		_camera[3][2] = -4;
 	}
 
-	void SurfaceGame::drawPolyGame(const Color& color, const std::vector<Vec2f>& points) {
+	void SurfaceGame::vertexShader(const Color& color, std::vector<Vec2f>& points) {
 		if (!_surface) return;
-		auto pointsCopy = points;
-		for (auto& p : pointsCopy) {
+		for (auto& p : points) {
 			Vec3 point = p;
 			point.z = _depth;
 			auto transform = getMatrix() * point;
@@ -25,19 +24,23 @@ namespace SuperHaxagon {
 			p.y = transform.y + _translate.y;
 		}
 
-		_surface->toScreenSpace(pointsCopy);
-		_surface->drawPolyAbsolute(color, pointsCopy);
+		this->drawPolyGame(color, points);
+	}
+
+	void SurfaceGame::drawPolyGame(const Color& color, std::vector<Vec2f>& points) {
+		_surface->toScreenSpace(points);
+		_surface->drawPolyAbsolute(color, points);
 	}
 
 	void SurfaceGame::drawRect(const Color color, const Vec2f position, const Vec2f size) {
-		const std::vector<Vec2f> points{
+		std::vector<Vec2f> points{
 				{position.x, position.y},
 				{position.x, position.y + size.y},
 				{position.x + size.x, position.y + size.y},
 				{position.x + size.x, position.y},
 		};
 
-		this->drawPolyGame(color, points);
+		this->vertexShader(color, points);
 	}
 
 	void SurfaceGame::drawBackground(const Color& color1, const Color& color2, const float sides) {
@@ -65,7 +68,7 @@ namespace SuperHaxagon {
 			triangle[0] = {0, 0};
 			triangle[1] = edges[exactSides - 1];
 			triangle[2] = edges[0];
-			this->drawPolyGame(interpolateColor(color1, color2, 0.5f), triangle);
+			this->vertexShader(interpolateColor(color1, color2, 0.5f), triangle);
 		}
 
 		//Draw the rest of the triangles
@@ -73,7 +76,7 @@ namespace SuperHaxagon {
 			triangle[0] = {0, 0};
 			triangle[1] = edges[i];
 			triangle[2] = edges[i + 1];
-			this->drawPolyGame(color2, triangle);
+			this->vertexShader(color2, triangle);
 		}
 	}
 
@@ -89,7 +92,7 @@ namespace SuperHaxagon {
 			edges[i].y = radius * sin(static_cast<float>(i) * TAU/sides + PI);
 		}
 
-		this->drawPolyGame(color, edges);
+		this->vertexShader(color, edges);
 	}
 
 	void SurfaceGame::drawCursor(const Color& color, const float radius, const float cursor) {
@@ -105,7 +108,7 @@ namespace SuperHaxagon {
 			p.y = orig.y;
 		}
 
-		this->drawPolyGame(color, triangle);
+		this->vertexShader(color, triangle);
 	}
 
 	void SurfaceGame::drawPatterns(const Color& color, const std::deque<Pattern>& patterns, const float sides) {
@@ -119,8 +122,8 @@ namespace SuperHaxagon {
 	void SurfaceGame::drawWalls(const Color& color, const Wall& wall, const float sides) {
 		if(wall.getDistance() + wall.getHeight() < SCALE_HEX_LENGTH) return; //TOO_CLOSE;
 		if(static_cast<float>(wall.getSide()) >= sides) return; //NOT_IN_RANGE
-		const auto trap = wall.calcPoints(sides, _offset);
-		this->drawPolyGame(color, trap);
+		auto trap = wall.calcPoints(sides, _offset);
+		this->vertexShader(color, trap);
 	}
 
 	Matrix4x4f SurfaceGame::getMatrix() {
@@ -151,6 +154,7 @@ namespace SuperHaxagon {
 		zoom[3][3] = 1.0f;
 
 		_matrix = zoom * rotate * pitch;
+		_recalculate = false;
 		return _matrix;
 	}
 

@@ -16,10 +16,16 @@ namespace SuperHaxagon {
 		virtual ~SurfaceGame() = default;
 
 		/**
-		 * Draws a polygon on the range of [-1, 1] in both x and y.
-		 * The smaller of the dimensions will be cropped, and 0, 0 is the center.
+		 * Applies a software based vertex shader to the passed coordinates.
+		 * Useful for platforms that don't have programmable shaders.
+		 * Subclasses may choose to override this and simply pass the points to drawPolyGame.
 		 */
-		virtual void drawPolyGame(const Color& color, const std::vector<Vec2f>& points);
+		virtual void vertexShader(const Color& color, std::vector<Vec2f>& points);
+
+		/**
+		 * Draws points to the screen on a range of [-1, 1] for x and y.
+		 */
+		virtual void drawPolyGame(const Color& color, std::vector<Vec2f>& points);
 
 		/**
 		 * Draws a rectangle on the screen. Position is bottom left.
