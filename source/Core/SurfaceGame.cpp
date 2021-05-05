@@ -47,7 +47,7 @@ namespace SuperHaxagon {
 		const auto exactSides = static_cast<size_t>(std::ceil(sides));
 
 		//solid background.
-		this->drawRect(color1, {-2.0f,-2.0f}, {4.0f, 4.0f});
+		_surface->setClearColor(color1);
 
 		//This draws the main background.
 		std::vector<Vec2f> edges;

@@ -3,8 +3,19 @@
 #include <cmath>
 
 namespace SuperHaxagon {
-	void Surface::screenSwap() {
+	void Surface::drawPolyAbsolute(const Color&, const std::vector<Vec2f>&) {
+		if (_needsClear) {
+			this->screenBegin();
+			_needsClear = false;
+		}
+	}
+
+	void Surface::screenSwitch() {
 		// By default do nothing since most platforms don't have two screens.
+	}
+
+	void Surface::screenFinalize() {
+		_needsClear = true;
 	}
 
 	void Surface::toScreenSpace(std::vector<Vec2f>& points) const {

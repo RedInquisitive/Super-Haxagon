@@ -10,6 +10,8 @@ namespace SuperHaxagon {
 	}
 
 	void SurfaceSFML::drawPolyAbsolute(const Color& color, const std::vector<Vec2f>& points) {
+		Surface::drawPolyAbsolute(color, points);
+
 		const sf::Color sfColor{ color.r, color.g, color.b, color.a };
 		sf::ConvexShape convex(points.size());
 		convex.setPosition(0, 0);
@@ -30,10 +32,13 @@ namespace SuperHaxagon {
 	}
 
 	void SurfaceSFML::screenBegin() {
-		_window->clear(sf::Color::Black);
+		sf::Color color {_clear.r, _clear.g, _clear.b};
+		_window->clear(color);
 	}
 
 	void SurfaceSFML::screenFinalize() {
+		Surface::screenFinalize();
+
 		_window->display();
 	}
 

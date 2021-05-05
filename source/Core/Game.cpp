@@ -44,10 +44,9 @@ namespace SuperHaxagon {
 				next = _state->update(dilation);
 			}
 
-			surface.screenBegin();
 			_state->drawTop(_platform.getSurfaceGame(), _platform.getSurfaceGameShadows());
 			_state->drawTopUI(_platform.getSurfaceUI());
-			surface.screenSwap();
+			surface.screenSwitch();
 			_state->drawBotUI(_platform.getSurfaceUI());
 			surface.screenFinalize();
 		}
