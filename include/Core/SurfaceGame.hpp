@@ -70,10 +70,12 @@ namespace SuperHaxagon {
 		void setTranslate(const Vec2f& translate);
 		void reset();
 
+	protected:
+		Surface* _surface = nullptr;
+
 	private:
 		Matrix4x4f getMatrix();
 
-		Surface* _surface = nullptr;
 		bool _recalculate = true;
 		float _rotation = 0.0f;
 		float _zoom = 1.0f;
